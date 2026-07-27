@@ -1,25 +1,21 @@
-export default function Cell({ value, onClick, isLastAI, isWinCell }) {
+export default function Cell({ value, onClick, isLastAI, isWinCell, isPlayerTurn, style }) {
+  const isEmpty = value === 0;
+  const isX = value === -1;
+  const isO = value === 1;
+
+  let cellClass = 'cell';
+  if (!isEmpty) cellClass += ' cell-occupied';
+  else if (!isPlayerTurn) cellClass += ' cell-disabled';
+  if (isLastAI) cellClass += ' cell-last-ai';
+  if (isWinCell) cellClass += ' cell-win';
+
   return (
-    <div
-      onClick={onClick}
-      style={{
-        width: 40,
-        height: 40,
-        border: "1px solid #999",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 22,
-        cursor: "pointer",
-        backgroundColor: isWinCell
-          ? "#ff7875"
-          : isLastAI
-          ? "#ffe58f"
-          : "white",
-        color: isWinCell ? "white" : "black",
-      }}
-    >
-      {value === 1 ? "🤖" : value === -1 ? "❌" : ""}
+    <div className={cellClass} onClick={isEmpty && isPlayerTurn ? onClick : undefined} style={style}>
+      {isX && <span className="cell-piece cell-piece-x">X</span>}
+      {isO && <span className="cell-piece cell-piece-o">O</span>}
+      {isEmpty && isPlayerTurn && (
+        <span className="cell-preview" aria-hidden="true">X</span>
+      )}
     </div>
   );
 }
