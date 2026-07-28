@@ -212,7 +212,19 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 32px;
+  min-height: 32px;
+}
+
+.status-bar.status-ended {
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 4px 8px;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  border-radius: 8px;
 }
 
 .status-text {

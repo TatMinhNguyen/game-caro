@@ -27,6 +27,7 @@ export default function App() {
   const [lastAIMove, setLastAIMove] = useState(null);
   const [winLine, setWinLine] = useState(null);
   const [gameResult, setGameResult] = useState(null); // 'win' | 'lose' | 'draw' | null
+  const [showWinModal, setShowWinModal] = useState(true);
   const [isAIThinking, setIsAIThinking] = useState(false);
 
   // Score
@@ -49,6 +50,7 @@ export default function App() {
     setLastAIMove(null);
     setWinLine(null);
     setGameResult(null);
+    setShowWinModal(true);
     setIsAIThinking(false);
 
     if (!pf) {
@@ -83,6 +85,7 @@ export default function App() {
       if (!move) {
         // No moves left → draw
         setGameResult('draw');
+        setShowWinModal(true);
         setScore(s => ({ ...s, draw: s.draw + 1 }));
         setIsAIThinking(false);
         setIsPlayerTurn(true);
@@ -98,6 +101,7 @@ export default function App() {
         if (aiWin) {
           setWinLine(aiWin);
           setGameResult('lose');
+          setShowWinModal(true);
           setScore(s => ({ ...s, ai: s.ai + 1 }));
         }
 
@@ -135,6 +139,7 @@ export default function App() {
       setBoard(newBoard);
       setWinLine(win);
       setGameResult('win');
+      setShowWinModal(true);
       setScore(s => ({ ...s, player: s.player + 1 }));
       setIsPlayerTurn(false);
       return;
@@ -145,6 +150,7 @@ export default function App() {
     if (!hasEmpty) {
       setBoard(newBoard);
       setGameResult('draw');
+      setShowWinModal(true);
       setScore(s => ({ ...s, draw: s.draw + 1 }));
       setIsPlayerTurn(false);
       return;
@@ -167,6 +173,7 @@ export default function App() {
     setLastAIMove(prev.lastAIMove);
     setWinLine(null);
     setGameResult(null);
+    setShowWinModal(true);
     setIsPlayerTurn(true);
     setIsAIThinking(false);
 
@@ -186,6 +193,11 @@ export default function App() {
     initGame();
   }, [initGame]);
 
+  // ---- Review Result (close modal to see board) ----
+  const handleReviewResult = useCallback(() => {
+    setShowWinModal(false);
+  }, []);
+
   // ---- Size change ----
   const handleSizeChange = useCallback((newSize) => {
     setSize(newSize);
@@ -199,6 +211,7 @@ export default function App() {
     setLastAIMove(null);
     setWinLine(null);
     setGameResult(null);
+    setShowWinModal(true);
     setIsAIThinking(false);
 
     if (!playerFirst) {
@@ -223,6 +236,7 @@ export default function App() {
     setLastAIMove(null);
     setWinLine(null);
     setGameResult(null);
+    setShowWinModal(true);
     setIsAIThinking(false);
     if (!playerFirst) {
       setIsPlayerTurn(false);
@@ -245,6 +259,7 @@ export default function App() {
     setLastAIMove(null);
     setWinLine(null);
     setGameResult(null);
+    setShowWinModal(true);
     setIsAIThinking(false);
     if (!pf) {
       setIsPlayerTurn(false);
@@ -261,7 +276,25 @@ export default function App() {
 
   // ---- Status bar content ----
   const renderStatus = () => {
-    if (gameResult) return null;
+    if (gameResult) {
+      if (showWinModal) return null;
+      const resultConfig = {
+        win: '🎉 Bạn đã chiến thắng!',
+        lose: '🤖 AI đã chiến thắng!',
+        draw: '🤝 Trận đấu hòa!',
+      };
+      return (
+        <div className="status-bar status-ended">
+          <span className="status-text">{resultConfig[gameResult]}</span>
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowWinModal(true)}>
+            🏆 Xem thông báo
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={handleReset}>
+            🎮 Chơi tiếp
+          </button>
+        </div>
+      );
+    }
     if (isAIThinking) {
       return (
         <div className="status-bar">
@@ -321,10 +354,11 @@ export default function App() {
       />
 
       {/* Win Modal */}
-      {gameResult && (
+      {gameResult && showWinModal && (
         <WinModal
           result={gameResult}
           onRestart={handleReset}
+          onReviewResult={handleReviewResult}
         />
       )}
     </main>

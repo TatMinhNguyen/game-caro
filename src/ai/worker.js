@@ -98,49 +98,79 @@ function getRawMoves(board, radius = 1) {
   return [...moves].map(m => m.split(',').map(Number));
 }
 
-// ---- Evaluate ----
-const SCORE_TABLE = {
-  '5': 1000000,
-  '4_2': 100000,
-  '4_1': 10000,
-  '3_2': 5000,
-  '3_1': 1000,
-  '2_2': 500,
-};
+// ---- Sliding Window Evaluator ----
+function evalWindow(board, startR, startC, dr, dc, n) {
+  let countAI = 0;
+  let countHuman = 0;
 
-function countLine(board, r, c, dx, dy, player) {
-  let count = 1, openEnds = 0;
-  let i = 1;
-  while (board[r + dx * i]?.[c + dy * i] === player) { count++; i++; }
-  if (board[r + dx * i]?.[c + dy * i] === 0) openEnds++;
-  i = 1;
-  while (board[r - dx * i]?.[c - dy * i] === player) { count++; i++; }
-  if (board[r - dx * i]?.[c - dy * i] === 0) openEnds++;
-  return { count, openEnds };
-}
-
-function evaluatePoint(board, r, c, player) {
-  let total = 0;
-  for (const [dx, dy] of DIRS) {
-    const { count, openEnds } = countLine(board, r, c, dx, dy, player);
-    if (count >= 2) {
-      const key = count >= 5 ? '5' : `${Math.min(count, 4)}_${openEnds}`;
-      const val = SCORE_TABLE[key] || 0;
-      total += player === 1 ? val : -val;
-    }
+  for (let i = 0; i < 5; i++) {
+    const r = startR + dr * i;
+    const c = startC + dc * i;
+    const val = board[r][c];
+    if (val === 1) countAI++;
+    else if (val === -1) countHuman++;
   }
-  return total;
+
+  if (countAI > 0 && countHuman > 0) return 0;
+
+  if (countAI > 0) {
+    if (countAI === 5) return 1000000;
+
+    let openEnds = 0;
+    const beforeR = startR - dr, beforeC = startC - dc;
+    if (beforeR >= 0 && beforeR < n && beforeC >= 0 && beforeC < n && board[beforeR][beforeC] === 0) openEnds++;
+    const afterR = startR + dr * 5, afterC = startC + dc * 5;
+    if (afterR >= 0 && afterR < n && afterC >= 0 && afterC < n && board[afterR][afterC] === 0) openEnds++;
+
+    if (countAI === 4) return openEnds === 2 ? 100000 : (openEnds === 1 ? 15000 : 0);
+    if (countAI === 3) return openEnds === 2 ? 6000 : (openEnds === 1 ? 1200 : 0);
+    if (countAI === 2) return openEnds === 2 ? 600 : (openEnds === 1 ? 100 : 0);
+    return 10;
+  }
+
+  if (countHuman > 0) {
+    if (countHuman === 5) return -1000000;
+
+    let openEnds = 0;
+    const beforeR = startR - dr, beforeC = startC - dc;
+    if (beforeR >= 0 && beforeR < n && beforeC >= 0 && beforeC < n && board[beforeR][beforeC] === 0) openEnds++;
+    const afterR = startR + dr * 5, afterC = startC + dc * 5;
+    if (afterR >= 0 && afterR < n && afterC >= 0 && afterC < n && board[afterR][afterC] === 0) openEnds++;
+
+    if (countHuman === 4) return openEnds === 2 ? -120000 : (openEnds === 1 ? -25000 : 0);
+    if (countHuman === 3) return openEnds === 2 ? -8000 : (openEnds === 1 ? -1500 : 0);
+    if (countHuman === 2) return openEnds === 2 ? -700 : (openEnds === 1 ? -120 : 0);
+    return -10;
+  }
+
+  return 0;
 }
 
 function evaluate(board) {
   let score = 0;
-  for (let r = 0; r < board.length; r++) {
-    for (let c = 0; c < board.length; c++) {
-      if (board[r][c] !== 0) {
-        score += evaluatePoint(board, r, c, board[r][c]);
-      }
+  const n = board.length;
+
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c <= n - 5; c++) {
+      score += evalWindow(board, r, c, 0, 1, n);
     }
   }
+  for (let r = 0; r <= n - 5; r++) {
+    for (let c = 0; c < n; c++) {
+      score += evalWindow(board, r, c, 1, 0, n);
+    }
+  }
+  for (let r = 0; r <= n - 5; r++) {
+    for (let c = 0; c <= n - 5; c++) {
+      score += evalWindow(board, r, c, 1, 1, n);
+    }
+  }
+  for (let r = 0; r <= n - 5; r++) {
+    for (let c = 4; c < n; c++) {
+      score += evalWindow(board, r, c, 1, -1, n);
+    }
+  }
+
   return score;
 }
 
@@ -280,6 +310,9 @@ initWasm();
 
 function findBestMoveWasm(wasm, board, depth) {
   const n = board.length;
+  if (wasm.setBoardSize) {
+    wasm.setBoardSize(n);
+  }
   wasm.resetBoard();
 
   for (let r = 0; r < n; r++) {
@@ -294,8 +327,8 @@ function findBestMoveWasm(wasm, board, depth) {
 
   const encodedMove = wasm.findBestMove(depth);
   if (encodedMove < 0) return null;
-  const r = Math.floor(encodedMove / 15);
-  const c = encodedMove % 15;
+  const r = Math.floor(encodedMove / n);
+  const c = encodedMove % n;
   return [r, c];
 }
 
@@ -324,4 +357,3 @@ self.onmessage = async function (e) {
 
   self.postMessage({ move, isWasm: usedWasm });
 };
-

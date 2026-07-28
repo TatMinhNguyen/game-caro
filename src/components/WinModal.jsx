@@ -16,8 +16,6 @@ function generateConfettiPieces() {
 }
 
 function Confetti() {
-  // useMemo is the correct hook for computing a value once on mount.
-  // Reading/writing ref.current during render is disallowed in React.
   const pieces = useMemo(() => generateConfettiPieces(), []);
 
   return (
@@ -41,7 +39,7 @@ function Confetti() {
   );
 }
 
-export default function WinModal({ result, onRestart }) {
+export default function WinModal({ result, onRestart, onReviewResult }) {
   const btnRef = useRef(null);
 
   useEffect(() => {
@@ -88,7 +86,14 @@ export default function WinModal({ result, onRestart }) {
             className="btn btn-primary"
             onClick={onRestart}
           >
-            🔄 Chơi lại
+            🎮 Chơi tiếp
+          </button>
+          <button
+            id="modal-review-btn"
+            className="btn btn-secondary"
+            onClick={onReviewResult}
+          >
+            🔍 Xem kết quả
           </button>
         </div>
       </div>
